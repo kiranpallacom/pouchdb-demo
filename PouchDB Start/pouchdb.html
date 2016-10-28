@@ -3,6 +3,14 @@
 	<head>
 		<meta charset="utf-8">
 		<title>PouchDB</title>
+		
+		<style>
+			.tableClass {
+				padding: 1em;
+				text-align: center;
+				align: center;
+			}
+		</style>
 	</head>
 	<body>
 		<h1>PouchDB Practice</h1>
@@ -12,31 +20,108 @@
 			<label for="fieldInst">Instructor: </label><input type="text" placeholder="Campos" name="fieldInst" id="fieldInst"><br><br>
 			<input type="reset" value="Reset" id="btnReset">
 			<input type="button" value="Save" id="btnSave">
+			<input type="button" value="Show" id="btnShow">
 		</form>
 		<div id="divShow"></div>
-		
-		
+			
 		<script src="jquery-1.11.3.min.js"></script>
 		<script src="pouchdb-6.0.7.min.js"></script>
 		<script>
 		(function() {
 			"use strict";
 			var db;
-			
+			// Instantiate new PouchDB object
 			function initDB() {
-				db = new PouchDB('db');
-				//return db;
+				db = new PouchDB('db'); 
+			}
+			initDB();
+			// Get html element handles using jQuery
+			var $elBtnSave = $("#btnSave"),
+				$elDivShow = $("#divShow"),
+				$elBtnReset = $("#btnReset"),
+				$elBtnShow = $("#btnShow"),
+				$elFormClass = $("#formClass"); 
+			
+			// Event Handlers	
+			$elBtnSave.on("click", fnSaveClass);
+			$elBtnShow.on("click", fnShowClasses);
+			
+			// Function to save Class data in to 'db'
+			function fnSaveClass() {
+				var $valCRN = $("#fieldCRN").val();
+				var $valName = $("#fieldName").val();
+				var $valInst = $("#fieldInst").val();
+				
+				var aClass = {
+					"_id" 	: $valCRN,
+					"cName" : $valName,
+					"cInst"	: $valInst
+				};
+				console.log(aClass);
+				// Add to database
+				db.put(aClass, function(error, result){
+					if(result) {
+						//console.log(result);
+						fnClearForm();
+					} else {
+						//Error Handling
+						switch(error.status) {
+							case 409:  // Duplicate CRN
+								alert("CRN already exists. \nType a new one!");
+								break;
+							case 412:  // CRN is empty
+								alert("Please enter a valid CRN!");
+								break;
+							default:  // Unknown error. Check console
+								console.log(error);
+								alert("Oopsss - Contact the Developer!");
+								break;
+						}
+					}
+				});
 			}
 			
-			initDB();
-
+			// Function to show all classes from database
+			function fnShowClasses() {
+				console.log("In fnShowClasses");
+				db.allDocs({
+					include_docs : true,
+					ascending: true
+					}, function(error, result) {
+						if(result) {
+							console.log(result.rows);
+							fnShowClassesTable(result.rows);
+						} else {
+							console.log(error);
+						}
+				}); //db.allDocs
+			} //fnShowClasses
 			
-			console.log(db);
-		
+			// Display data in HTML table
+			function fnShowClassesTable(data) {
+				console.log("In fnShowClassesTable");
+				console.log(data[2].doc.cName)
+				var str = "<p><table border='1' id='tableClass'>";
+				str += "<tr><th>CRN</th><th>Class</th><th>Instructor</th><th>&nbsp;</th><tr>";
+				for (var i=0; i<data.length; i++) {
+					str += "<tr><td>" + data[i].doc._id + "</td><td>" + data[i].doc.cName + "</td><td>" + data[i].doc.cInst + "</td><td>" + "&#x270e;" + "</td><tr>";
+				}
+				str += "</table></p>";
+				
+				$elDivShow.html(str);
+			
+			}
+			
+			
+			// Function to clear the form
+			function fnClearForm() {
+				$elFormClass[0].reset();
+			
+			
+			}
 		})();
 		</script>
 	</body>
-
 </html>
 
 
