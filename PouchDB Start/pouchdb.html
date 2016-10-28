@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>PouchDB</title>
+	</head>
+	<body>
+		<h1>PouchDB Practice</h1>
+		<form id="formClass">
+			<label for="fieldCRN">CRN: </label><input type="text" placeholder="1828J" name="fieldCRN" id="fieldCRN"><br>
+			<label for="fieldName">Name: </label><input type="text" placeholder="Android I" name="fieldName" id="fieldName"><br>
+			<label for="fieldInst">Instructor: </label><input type="text" placeholder="Campos" name="fieldInst" id="fieldInst"><br><br>
+			<input type="reset" value="Reset" id="btnReset">
+			<input type="button" value="Save" id="btnSave">
+		</form>
+		<div id="divShow"></div>
+		
+		
+		<script src="jquery-1.11.3.min.js"></script>
+		<script src="pouchdb-6.0.7.min.js"></script>
+		<script>
+		(function() {
+			"use strict";
+			var db;
+			
+			function initDB() {
+				db = new PouchDB('db');
+				//return db;
+			}
+			
+			initDB();
+
+			
+			console.log(db);
+		
+		})();
+		</script>
+	</body>
+
+</html>
+
+
+
