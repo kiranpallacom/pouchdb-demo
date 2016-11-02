@@ -3,7 +3,7 @@
 	<head>
 		<meta charset="utf-8">
 		<title>PouchDB</title>
-		
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
 		<style>
 			.tableClass {
 				padding: 1em;
@@ -19,11 +19,11 @@
 			<label for="fieldName">Name: </label><input type="text" placeholder="Android I" name="fieldName" id="fieldName"><br>
 			<label for="fieldInst">Instructor: </label><input type="text" placeholder="Campos" name="fieldInst" id="fieldInst"><br><br>
 			<input type="reset" value="Reset" id="btnReset">
-			<input type="button" value="Save" id="btnSave">
-			<input type="button" value="Show" id="btnShow">
+			<input type="button" value="Save Class" id="btnSave">
+			<input type="button" value="Show Classes" id="btnShow">
 		</form>
 		<div id="divShow"></div>
-			
+					
 		<script src="jquery-1.11.3.min.js"></script>
 		<script src="pouchdb-6.0.7.min.js"></script>
 		<script>
@@ -45,12 +45,21 @@
 			// Event Handlers	
 			$elBtnSave.on("click", fnSaveClass);
 			$elBtnShow.on("click", fnShowClasses);
+			// First target an element that exists (#divShow), then dynamic element (#btnDelete)
+			$("#divShow").on("click", "#btnDelete", fnDeleteClass);
+			// Run an anonymous func. passing data of the WHOLE ROW, of particular pencil
+			// clicked in the view
+			$("#divShow").on("click", ".btnPencil", function(){fnUpdateClassPrep($(this).parent())});
+			$("#divShow").on("click", "#btnUpdate", fnUpdateClass);
+			$("#divShow").on("click", "#btnNuke", fnNuke);
 			
 			// Function to save Class data in to 'db'
 			function fnSaveClass() {
 				var $valCRN = $("#fieldCRN").val();
 				var $valName = $("#fieldName").val();
 				var $valInst = $("#fieldInst").val();
+				
+				$valCRN = $valCRN.toUpperCase();
 				
 				var aClass = {
 					"_id" 	: $valCRN,
@@ -79,6 +88,13 @@
 						}
 					}
 				});
+				fnShowClasses();
+			}
+			
+			
+			// Function to clear the form
+			function fnClearForm() {
+				$elFormClass[0].reset();
 			}
 			
 			// Function to show all classes from database
@@ -100,25 +116,143 @@
 			// Display data in HTML table
 			function fnShowClassesTable(data) {
 				console.log("In fnShowClassesTable");
-				console.log(data[2].doc.cName)
+				
 				var str = "<p><table border='1' id='tableClass'>";
 				str += "<tr><th>CRN</th><th>Class</th><th>Instructor</th><th>&nbsp;</th><tr>";
 				for (var i=0; i<data.length; i++) {
-					str += "<tr><td>" + data[i].doc._id + "</td><td>" + data[i].doc.cName + "</td><td>" + data[i].doc.cInst + "</td><td>" + "&#x270e;" + "</td><tr>";
+					str += "<tr><td>" + data[i].doc._id + "</td><td>" + data[i].doc.cName + "</td><td>" + data[i].doc.cInst + "</td><td class='btnPencil'>" + "&#x270e;" + "</td><tr>";
 				}
 				str += "</table></p>";
-				
+				str += "<hr>"
+				str += "<input type='text' placeholder='2059H' id='fieldDelete'><button id='btnDelete'>Delete Class</button>";
+				str += 	"<hr><hr>";
+				str += 	"<div id='divTwoCol'>" +
+							"<div id='divleftCol'>" +
+								"<button id='btnUpdate'>Update Class</button>" +
+							"</div>" +
+							"<div id='divrightCol'>" + 
+								"<input type='text' placeholder='1234J' disabled id='fieldUpdateCRN'>" +
+								"<input type='text' placeholder='Android I' id='fieldUpdateName'>" +
+								"<input type='text' placeholder='Victor' id='fieldUpdateInst'>" +
+							"</div>" +
+						"</div>";
+				str +=  "<hr><button id='btnNuke'>Delete All Classes</button>";
 				$elDivShow.html(str);
-			
+				$elDivShow.hide().fadeIn(2000);
 			}
 			
-			
-			// Function to clear the form
-			function fnClearForm() {
-				$elFormClass[0].reset();
-			
-			
+			// Delete a specific 'class' from database
+			function fnDeleteClass() {
+				var $$theClass = $("#fieldDelete").val();
+				$theClass = $theClass.toUpperCase();
+				console.log($theClass);
+				db.get($theClass, function(error, result){
+					if (result) {
+						db.remove(result, function(error, result){
+							if (result) {
+								console.log("Successfully removed!");
+								fnShowClasses();
+							} else {
+								console.log("Unexpected Error");
+							}
+						}); // db.remove
+					} else {
+						console.log(error);
+						alert("Error! Class not found!!");
+					}
+				}); // db.get
 			}
+			
+			// Preparation to update class data by clicking 'pencil' button
+			function fnUpdateClassPrep(tableRow) {
+				console.log(tableRow);
+				var $tmpCRN = tableRow.find("td:eq(0)").text(),
+					$tmpName = tableRow.find("td:eq(1)").text(),
+					$tmpInst = tableRow.find("td:eq(2)").text()
+				console.log($tmpCRN, $tmpName, $tmpInst);
+				
+				$("#fieldUpdateCRN").val($tmpCRN);
+				$("#fieldUpdateName").val($tmpName);
+				$("#fieldUpdateInst").val($tmpInst);
+					
+			}
+			
+			function fnUpdateClass() {
+				var $updateCRN = $("#fieldUpdateCRN").val(),
+					$updateName = $("#fieldUpdateName").val(),
+					$updateInst = $("#fieldUpdateInst").val();
+					
+				db.get($updateCRN, function(error, result){
+					if (error) {
+						alert("Warning!\nCRN: " + $updateCRN + " does not exist :-(");
+					} else {
+						console.log("revision = " + result._rev);
+						var aClass = {
+							"_id" 	: result._id,
+							"cName" : $updateName,
+							"cInst"	: $updateInst,
+							"_rev"  : result._rev
+						};
+						console.log(aClass);
+						// Add to database
+						db.put(aClass, function(error, result){
+							if(result) {
+								//console.log(result);
+								fnClearUpdateForm();
+							} else {
+								//Error Handling
+								switch(error.status) {
+									case 409:  // Duplicate CRN
+										alert("CRN already exists. \nType a new one!");
+										break;
+									case 412:  // CRN is empty
+										alert("Please enter a valid CRN!");
+										break;
+									default:  // Unknown error. Check console
+										console.log(error);
+										alert("Oopsss - Contact the Developer!");
+										break;
+								}
+							}
+						});
+						fnShowClasses();
+						console.log("Successfully Updated!");
+					}
+				});
+			} //fnUpdateClass
+			
+			// Clear the 'Update Class' form
+			function fnClearUpdateForm() {
+				$("#fieldUpdateCRN").val('');
+				$("#fieldUpdateName").val('');
+				$("#fieldUpdateInst").val('');
+			};
+			
+			// Clear all classes and delete database
+			function fnNuke() {
+				switch(confirm("You are about to delete EVERYTHING!\nConfirm?")) {
+					case true:
+						db.destroy(function(error,result){
+							if(error) {
+								console.log(error);
+								alert("ERROR: Contact the developerfor help");
+							} else {
+								console.log(result);
+								initDB();
+								$elDivShow.show().fadeOut(2000);
+							};
+						});
+						break;
+					case false:
+						// To-do: add a jQM Popup later
+						console.log("User cancelled!");
+						break;
+					default:
+						console.log("Unknow Error when deleting db");
+						break;
+				}
+			};
+			
 		})();
 		</script>
 	</body>
